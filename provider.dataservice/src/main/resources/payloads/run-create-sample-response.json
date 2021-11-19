@@ -1,0 +1,34 @@
+{
+    "ID": 0,
+    "DeletedAt": null,
+    "id": 26,
+    "UUID": "run-FpNcaNREqJXk",
+    "WorkSpaceID": 30,
+    "WorkSpace": {
+        "DeletedAt": null,
+        "ID": 30,
+        "UUID": "ws-JHXduOerIHhOJ",
+        "Name": "",
+        "OrganizationID": 0,
+        "Organization": {
+            "DeletedAt": null,
+            "ID": 0,
+            "UUID": "",
+            "Name": "",
+            "Attributes": null,
+            "CreatedAt": "0001-01-01T00:00:00Z",
+            "UpdatedAt": "0001-01-01T00:00:00Z"
+        },
+        "InputVariables": null,
+        "OutputVariable": null,
+        "Attributes": null,
+        "CreatedAt": "2021-06-28T06:01:21.496-04:00",
+        "UpdatedAt": "2021-06-28T06:01:21.496-04:00"
+    },
+    "Jobid": "job-414234124262701281-0",
+    "Attributes": {
+        "state": "created"
+    },
+    "CreatedAt": "2021-06-28T06:01:21.496-04:00",
+    "UpdatedAt": "2021-06-28T06:01:21.606-04:00"
+}

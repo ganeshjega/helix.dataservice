@@ -1,0 +1,34 @@
+{
+    "ID": $ID,
+    "DeletedAt": null,
+    "id": $id,
+    "UUID": "run-$UUID",
+    "WorkSpaceID": $WS_ID,
+    "WorkSpace": {
+        "DeletedAt": null,
+        "ID": $WS_ID,
+        "UUID": "ws-$WS_UUID",
+        "Name": "",
+        "OrganizationID": $ORG_ID,
+        "Organization": {
+            "DeletedAt": null,
+            "ID": $ORG_ID,
+            "UUID": "",
+            "Name": "",
+            "Attributes": null,
+            "CreatedAt": "$ORG_TS",
+            "UpdatedAt": "$ORG_TS"
+        },
+        "InputVariables": null,
+        "OutputVariable": null,
+        "Attributes": null,
+        "CreatedAt": "$WS_TS",
+        "UpdatedAt": "$WS_TS"
+    },
+    "Jobid": "job-$JOB_UUID-$JOB_NO",
+    "Attributes": {
+        "state": "created"
+    },
+    "CreatedAt": "$RUN_TS",
+    "UpdatedAt": "$RUN_TS"
+}

@@ -1,0 +1,21 @@
+{
+    "DeletedAt": null,
+    "ID": $WS_ID,
+    "UUID": "ws-$UUID",
+    "Name": "$WS_NAME",
+    "OrganizationID": $ORG_ID,
+    "Organization": {
+        "DeletedAt": null,
+        "ID": $ORG_ID,
+        "UUID": "",
+        "Name": "",
+        "Attributes": null,
+        "CreatedAt": "$ORG_TS",
+        "UpdatedAt": "$ORG_TS"
+    },
+    "InputVariables": null,
+    "OutputVariable": null,
+    "Attributes": null,
+    "CreatedAt": "$WS_TS",
+    "UpdatedAt": "$WS_TS"
+}
