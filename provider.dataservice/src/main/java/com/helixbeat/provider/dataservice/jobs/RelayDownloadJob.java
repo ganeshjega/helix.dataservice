@@ -2,10 +2,11 @@ package com.helixbeat.provider.dataservice.jobs;
 
 import java.io.File;
 
+import com.helixbeat.provider.dataservice.AppConstants;
 import com.helixbeat.provider.util.FileDownload;
 import com.helixbeat.provider.util.Utils;
 
-public abstract class RelayDownloadJob extends AbstractJob {
+public abstract class RelayDownloadJob extends AbstractJob implements AppConstants {
 	
 	FileDownload download = null;
 	
@@ -16,6 +17,8 @@ public abstract class RelayDownloadJob extends AbstractJob {
 	protected String nextUrl = null;
 	
 	protected String nextPath = null;
+	
+	protected int currentIndex = 0;
 	
 	public RelayDownloadJob(String url, String path) {
 		setUrl(url);
@@ -64,13 +67,16 @@ public abstract class RelayDownloadJob extends AbstractJob {
 		while (true) {
 			if (getNextUrl() != null) {
 				try {
-					Thread.sleep(Utils.getLong(System.getProperty("thread.sleepTime","3000")));
+					Thread.sleep(Utils.getLong(System.getProperty("thread.sleepTime","2000")));
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				File file = next();
-				processBody(file);
+				try {
+					File file = next();
+					processBody(file);
+				} catch (Exception ex) {
+					System.out.println("RelayDownloadJob.execute() Error : " + ex + " while processing " + getNextUrl());
+				}
 			} else {
 				break;
 			}

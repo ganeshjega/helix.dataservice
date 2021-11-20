@@ -1,6 +1,7 @@
 package com.helixbeat.provider.dataservice;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.Timestamp;
@@ -30,10 +31,15 @@ import com.google.gson.JsonObject;
 import com.helixbeat.provider.dataservice.jobs.DownloadEvent;
 import com.helixbeat.provider.dataservice.jobs.FileDownloadJob;
 import com.helixbeat.provider.dataservice.jobs.IDownloadJobCallback;
+import com.helixbeat.provider.dataservice.jobs.StateManagerThread;
+import com.helixbeat.provider.dataservice.jobs.StateSasCleanerThread;
+import com.helixbeat.provider.dataservice.jobs.StateSasConverterThread;
+import com.helixbeat.provider.dataservice.jobs.StateSasUploaderThread;
 import com.helixbeat.provider.dataservice.jobs.downloaderCallback.LanguageValueSetDownloaderCallback;
 import com.helixbeat.provider.dataservice.jobs.downloaderCallback.StateCityZipCodeValueSetDownloaderCallback;
 import com.helixbeat.provider.util.JSONUtils;
 import com.helixbeat.provider.util.RestClient;
+import com.helixbeat.provider.util.Utils;
  
 @XmlAccessorType(XmlAccessType.NONE)
 @XmlRootElement(name = "run")
@@ -55,7 +61,7 @@ public class RunResource extends AbstractResource
     @Consumes("application/json")
     @Produces("application/json")
     @Path("/syncValueSet")
-    public Response create(String str) throws URISyntaxException 
+    public Response syncValueSet(String str) throws URISyntaxException 
     {
     	GsonJsonParser parser = new GsonJsonParser();
     	Map data = parser.parseMap(str);
@@ -89,6 +95,187 @@ public class RunResource extends AbstractResource
         return Response.status(200).entity(output.toString()).build();
     }
 
+    @POST
+    @Consumes("application/json")
+    @Produces("application/json")
+    @Path("/syncProviderData")
+    public Response syncProviderData(String str) throws URISyntaxException {
+        String runUUID = UUID.randomUUID().toString();
+    	File downloadPath = new File(AppConstants.PROVIDER_DATA_DOWNLOAD_PATH + File.separator + runUUID);
+    	if (!downloadPath.exists()) {
+    		downloadPath.mkdirs();
+    	}
+    	
+    	GsonJsonParser parser = new GsonJsonParser();
+    	Map data = parser.parseMap(str);
+    	System.out.println("RunResource.createOld() " + data);
+        
+        RestClient.executePostAndDownload(JSONUtils.buildFromStringArray(new String[] { AppConstants.KEYWORD_KEY, "city" }).toString(), AppConstants.SAS_BUILD_RESULTS_URL, downloadPath.getAbsolutePath() + File.separator + "cities.json");
+        
+        JSONObject cityData = JSONUtils.parseObjectFromFileSystem(downloadPath.getAbsolutePath() + File.separator + "cities.json");
+        JSONArray dataArray = (JSONArray) cityData.get("data");
+        for (int i=0;i<dataArray.size();i++) {
+        	JSONObject cityObject = (JSONObject) dataArray.get(i);
+        	File dir = new File(downloadPath + File.separator + cityObject.get("StateCode") + File.separator + cityObject.get("CityName"));
+        	if (!dir.exists()) {
+        		dir.mkdirs();
+        	}
+        	Utils.putBytes(((String) cityObject.get("ZipCodeList")).getBytes(), dir.getAbsolutePath() + File.separator + "zipcodelist.txt");
+        	System.out.println("RunResource.syncProviderData() Done with city " + cityObject.get("CityName"));
+        }
+        
+        JsonObject output = new JsonObject();
+        output.addProperty("run.identifier", runUUID);
+        output.addProperty("success", "true");
+        return Response.status(200).entity(output.toString()).build();
+    }
+
+    @POST
+    @Consumes("application/json")
+    @Produces("application/json")
+    @Path("/prepareProviderData")
+    public Response prepareProviderData(String str) throws URISyntaxException {
+    	GsonJsonParser parser = new GsonJsonParser();
+    	Map data = parser.parseMap(str);
+
+    	System.out.println("RunResource.createOld() " + data);
+        
+    	String runUUID = UUID.randomUUID().toString();
+    	
+    	File downloadPath = new File(AppConstants.PROVIDER_DATA_DOWNLOAD_PATH + File.separator + "all-cities");
+    	if (downloadPath.exists()) {
+    		File[] stateDirList = downloadPath.listFiles(new FileFilter() {
+				@Override
+				public boolean accept(File stateDir) {
+					return stateDir.isDirectory();
+				}
+			});
+    		if (stateDirList != null && stateDirList.length > 0) {
+    			for (File stateDir : stateDirList) {
+    				StateManagerThread stateManagerThread = new StateManagerThread();
+    				stateManagerThread.setManagedDir(stateDir);
+    				stateManagerThread.start();
+    				try {
+						stateManagerThread.join();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+    			}
+    		}
+    	}
+        
+        JsonObject output = new JsonObject();
+        output.addProperty("run.identifier", runUUID);
+        output.addProperty("success", "true");
+        return Response.status(200).entity(output.toString()).build();
+    }
+
+    @POST
+    @Consumes("application/json")
+    @Produces("application/json")
+    @Path("/convertProviderDataFromRawToSas")
+    public Response convertProviderDataFromRawToSas(String str) throws URISyntaxException {
+    	GsonJsonParser parser = new GsonJsonParser();
+    	Map data = parser.parseMap(str);
+
+    	System.out.println("RunResource.createOld() " + data);
+        
+    	String runUUID = UUID.randomUUID().toString();
+    	
+    	File downloadPath = new File(AppConstants.PROVIDER_DATA_DOWNLOAD_PATH + File.separator + "all-cities");
+    	if (downloadPath.exists()) {
+    		File[] stateDirList = downloadPath.listFiles(new FileFilter() {
+				@Override
+				public boolean accept(File stateDir) {
+					return stateDir.isDirectory();
+				}
+			});
+    		if (stateDirList != null && stateDirList.length > 0) {
+    			for (File stateDir : stateDirList) {
+    				StateSasConverterThread stateSasConverterThread = new StateSasConverterThread();
+    				stateSasConverterThread.setManagedDir(stateDir);
+    				stateSasConverterThread.start();
+    			}
+    		}
+    	}
+        
+        JsonObject output = new JsonObject();
+        output.addProperty("run.identifier", runUUID);
+        output.addProperty("success", "true");
+        return Response.status(200).entity(output.toString()).build();
+    }
+    
+    @POST
+    @Consumes("application/json")
+    @Produces("application/json")
+    @Path("/uploadProviderDataFromSasToDatabase")
+    public Response uploadProviderDataFromSasToDatabase(String str) throws URISyntaxException {
+    	GsonJsonParser parser = new GsonJsonParser();
+    	Map data = parser.parseMap(str);
+
+    	System.out.println("RunResource.createOld() " + data);
+        
+    	String runUUID = UUID.randomUUID().toString();
+    	
+    	File downloadPath = new File(AppConstants.PROVIDER_DATA_DOWNLOAD_PATH + File.separator + "all-cities");
+    	if (downloadPath.exists()) {
+    		File[] stateDirList = downloadPath.listFiles(new FileFilter() {
+				@Override
+				public boolean accept(File stateDir) {
+					return stateDir.isDirectory();
+				}
+			});
+    		if (stateDirList != null && stateDirList.length > 0) {
+    			for (File stateDir : stateDirList) {
+    				StateSasUploaderThread stateSasUploaderThread = new StateSasUploaderThread();
+    				stateSasUploaderThread.setManagedDir(stateDir);
+    				stateSasUploaderThread.start();
+    			}
+    		}
+    	}
+        
+        JsonObject output = new JsonObject();
+        output.addProperty("run.identifier", runUUID);
+        output.addProperty("success", "true");
+        return Response.status(200).entity(output.toString()).build();
+    }
+
+    @POST
+    @Consumes("application/json")
+    @Produces("application/json")
+    @Path("/cleanProviderDataFromSas")
+    public Response cleanProviderDataFromSas(String str) throws URISyntaxException {
+    	GsonJsonParser parser = new GsonJsonParser();
+    	Map data = parser.parseMap(str);
+
+    	System.out.println("RunResource.createOld() " + data);
+        
+    	String runUUID = UUID.randomUUID().toString();
+    	
+    	File downloadPath = new File(AppConstants.PROVIDER_DATA_DOWNLOAD_PATH + File.separator + "all-cities");
+    	if (downloadPath.exists()) {
+    		File[] stateDirList = downloadPath.listFiles(new FileFilter() {
+				@Override
+				public boolean accept(File stateDir) {
+					return stateDir.isDirectory();
+				}
+			});
+    		if (stateDirList != null && stateDirList.length > 0) {
+    			for (File stateDir : stateDirList) {
+    				StateSasCleanerThread stateSasCleanerThread = new StateSasCleanerThread();
+    				stateSasCleanerThread.setManagedDir(stateDir);
+    				stateSasCleanerThread.start();
+    			}
+    		}
+    	}
+        
+        JsonObject output = new JsonObject();
+        output.addProperty("run.identifier", runUUID);
+        output.addProperty("success", "true");
+        return Response.status(200).entity(output.toString()).build();
+    }
+    
     @POST
     @Consumes("application/json")
     public Response createRun(Run run) throws URISyntaxException 

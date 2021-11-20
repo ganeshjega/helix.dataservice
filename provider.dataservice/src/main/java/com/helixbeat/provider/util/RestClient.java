@@ -69,6 +69,19 @@ public class RestClient {
 		return executePost(input, URLString, null);
 	}
 	
+	public static String executePostAndDownload(String input, String URLString, String path) {
+		JSONObject outputObject = new JSONObject();
+		try {
+			Utils.putBytes(executePost(input, URLString).getBytes(), path);
+			outputObject.put("success", "true");
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			outputObject.put("success", "false");
+			outputObject.put("msg", ex.getMessage());
+		}
+		return outputObject.toString();
+	}
+	
 	public static String executePost(String input, String URLString, HashMap<String,String> headers) {
 		String result = "";
 		try {

@@ -93,8 +93,12 @@ public abstract class AbstractJob extends Thread {
 	public abstract void execute();
 	
 	public void run() {
-		callback.downloadStarted(new DownloadEvent(this).setMessage("Started download of " + attributes).setStatus(DownloadEventStatus.STARTED));
+		if (callback != null) {
+			callback.downloadStarted(new DownloadEvent(this).setMessage("Started download of " + attributes).setStatus(DownloadEventStatus.STARTED));
+		}
 		execute();
-		callback.downloadComplete(new DownloadEvent(this).setMessage("Finished download of " + attributes).setStatus(DownloadEventStatus.COMPLETE));
+		if (callback != null) {
+			callback.downloadComplete(new DownloadEvent(this).setMessage("Finished download of " + attributes).setStatus(DownloadEventStatus.COMPLETE));
+		}
 	}
 }
